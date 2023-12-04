@@ -172,24 +172,24 @@ CW_register : Register__8bit port map(
 	begin
 		case STATE is
 			when idle =>
-				pc_mode 	<= '0';
-				da_mode		<= '0';
+				PC_mode 	<= '0';
+				DA_mode		<= '0';
 				standby_mode<= '0';
 			when PC =>
-				pc_mode 	<= '1';
-				da_mode		<= '0';
+				PC_mode 	<= '1';
+				DA_mode		<= '0';
 				standby_mode<= '0';
 			when DA_idle =>
-				pc_mode 	<= '0';
-				da_mode		<= '1';
+				PC_mode 	<= '0';
+				DA_mode		<= '1';
 				standby_mode<= '0';
 			when DA_active =>
-				pc_mode 	<= '0';
-				da_mode		<= '1';
+				PC_mode 	<= '0';
+				DA_mode		<= '1';
 				standby_mode<= '0';
 			when SB =>
-				pc_mode 	<= '0';
-				da_mode		<= '0';
+				PC_mode 	<= '0';
+				DA_mode		<= '0';
 				standby_mode<= '1';
 			end case;
 		end process;
@@ -204,6 +204,6 @@ CW_register : Register__8bit port map(
 	addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
 	addr_cnt_clk <= (PC_mode and xclr_addr and (wen or ren)) or (DA_mode and i8254_ick);
 	
-	dac_clk <= i8254_ick;
+	dac_clk <= i8254_ick and DA_mode; --i8254_ick
 		
 end Behavioral;
