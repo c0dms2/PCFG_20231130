@@ -1,0 +1,96 @@
+PCFG 질문들
+
+[controller]
+- CW register를 컨트롤러 내부에 구현하고 port mapping (enable 신호 X)
+1) reg_clk : system clock에 연결 (reset도 마찬가지로 설정)
+2) reg_data_in : CW_addr =1 인 경우에만 reg_data_in이(signal) reg_data_out(signal)으로 넘어가도록 설정
+(CW_addr = 0일 때의 동작은?)
+3) reg_data_out(signal)은 모드 컨트롤 시 state machine 변환하는 조건으로만 사용
+
+- mode control 부분
+1) start 신호를 DA_start_addr가 1일 때, stop이 1일 때로 state machine 입력 신호를 인가
+* 2) da_idle에서 cw5 일 때를 정의한다면 어떻게 해야 할까?
+* 3) data_int_in에서 CW_register에 들어가는 값을 주는 것이라고 생각했는데 PC UI에서 전달해주는 값인지, 아니면 따로 signal cw7,6,5 정의?
+cw4~cw0에 대한 선언 여부)
+(시뮬레이션으로 전달하는 값들이 실제로 어떻게 전달되는지 여부)
+
+- in, out 핀 연결
+1) 8254_rp가 dac_clk이라면, 8254에서 직접 연결하지 않고 dAC out register에 controller를 통하는 이유는 무엇일까?
+(DA mode일때만 인가하면 되기 때문일까?)
+top module에서 m_dac_clk이 나가기도 함
+
+
+
+[PCFG top]
+-8254 연결할 때 m_wr_b의 역할은? DA 모드일 때만 받아들인다고 해야 할까? not(s_db_en_b)으로 설정해두었다
+-IBUF, BUFG의 존재 이유 ( BUFG -> IBUF )로 시스템 클럭을 1clk 지연??...
+-address counter에서 output signal 할당하기
+- 누락된 out? m_dac_clk으로 따로 나감
+
+
+
+[SRAM]
+-block ram component & port mapping 설정하기(못 건드리는 중)
+- addra, addrb로 나눠서 설정한 이유와 각각의 역할
+
+
+
+
+[address decoder]
+- m_pc_addr_valid 값을 process 문의 입력으로 두고 address decoder를 설정한다고 접근했다.
+(조건을 따로 설정해줘야 하는지/ process문으로 설정하는 접근법도 가능한지)
+
+
+	
+
+
+[bidirectional buffer] *** (구현을 제대로 했는지!)
+- dir 을 read enable로 설정하면, 1일 때 read가 된다.
+- pc에서 충돌이 일어나는건지, 아니면 da모드에서 pc로 넘어가는 상황/ 데이터를 읽어들이는 과정에서 buffer가 필요한걸까?
+- 충돌이 일어난다면 먼저 받아야 할 값은 뭘까?
+- dir, oe_b 신호에 대한 정의 **
+- m_pc_rd_en을 활용해서 dir 신호를 정의한다?
+
+
+
+
+[address counter]
+- 16bit 카운터(넉넉하게 비트 설정을 했다?)
+- 카운터에 리셋 신호는 필요없을까?_?
+
+
+* pc에서 주는 wen, ren을 모두 active high로 설정
+  data_int_in: in std_logic_vector(7 downto 0); 
+  
+  -- system input clk/reset
+  m_sys_clk: in std_logic; -- controller / block memory clock
+  m_sys_reset_b: in std_logic;
+  
+  -- Address decoder
+  CW_addr: in std_logic;
+  mem_addr: in std_logic;
+  xclr_addr: in std_logic;
+  DA_start_addr: in std_logic;
+  DA_stop_addr: in std_logic;
+  
+  -- r/w enable (pc)
+  ren: in std_logic;
+  wen: in std_logic;
+  
+  -- 8254 in/out
+  i8254_ick: in  std_logic;
+  i8254_rp: in std_logic;
+  
+  dac_clk: out std_logic; --- address counter clock / DAC out register input
+  
+  -- address counter
+  addr_cnt_clk: out std_logic;
+  addr_cnt_clr: out std_logic;
+  addr_cnt_en: out std_logic;
+  
+  -- block memory 
+  mem_cs: out std_logic;
+  mem_wen: out std_logic;
+  mem_ren: out std_logic
+ 
+top module in 신호들
