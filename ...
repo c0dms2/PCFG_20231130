@@ -4,7 +4,7 @@ PCFG 질문들
 Controller 구현 과정
 
 * CW register를 내부에 정의
-* signal로 s_CW_reg_data, s_CW_reg_data_out, 3가지 모드를 설정해둠
+* signal로 s_CW_reg_data, s_CW_reg_data_out, 3가지 모드를 설정
 * reset 우선순위
 
 모드 컨트롤
@@ -15,11 +15,11 @@ Controller 구현 과정
   - start가 0이고 x20일 때 DA_idle 유지
   - (start 0) 이고 x40, x80 등 들어오게 되면 
 * signal (s_CW_reg_data_out, DA_start_addr, DA_stop_addr)
-*** 모르겠는 부분 😮😮 이렇게 동작하려면 reg_data_out 값이 중간에 뜨면 안되고 유지되어야 하는데 방법이...😮
+*** 모르겠는 부분 😮😮 이렇게 동작하려면 reg_data_out 값이 중간에 뜨면 안되고 유지되어야 한다😮
 =======
 * Bidirectional Buffer 관련 + 질문 공유
-* 일정: 월 3시, 수 4시반, ... (주말 전까지는.....)
-* 역할 분담: (가급적이면 포트매핑 이야기를 오늘 다 하고, 수요일까지 매핑한걸 공유....)
+* 일정: 월 3시, 수 4시반, ...
+* 역할 분담
 * 디버깅 일정
 =======
 
@@ -37,7 +37,7 @@ Controller 구현 과정
 * 2) da_idle에서 cw5 일 때를 정의한다면 어떻게 해야 할까?
 * 3) data_int_in에서 CW_register에 들어가는 값을 주는 것이라고 생각했는데 PC UI에서 전달해주는 값인지😮, 아니면 따로 signal cw7,6,5 정의?
 cw4~cw0에 대한 선언 여부)
-(시뮬레이션으로 전달하는 값들이 실제로 어떻게 전달되는지 여부)
+(시뮬레이션으로 전달하는 값들이 실제로 어떻게 전달되는지)
 
 
 
@@ -120,5 +120,5 @@ cw4~cw0에 대한 선언 여부)
  
 top module in 신호들
 
-웽에엑
+
 --------------------------
