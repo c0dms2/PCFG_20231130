@@ -139,13 +139,14 @@ CW_register : Register__8bit port map(
 			--
 			
 			when DA_idle =>
-			if(DA_start_addr = '1') then
+			if(DA_start_addr = '1') then -- DA_start 우선
 				STATE <= DA_active;
-			elsif(DA_start_addr = '0' and s_CW_reg_data_out = x"20") then -- start = 0일 때를 우선
-				STATE <= DA_idle;
-			else -- CW5 = 0 인 상황?!
+			elsif(DA_start_addr = '0' and s_CW_reg_data_out = x"40") then
 				STATE <= PC;
+			else 
+				STATE <= DA_idle;
 			end if;
+			--
 			--
 			
 			when DA_active =>
