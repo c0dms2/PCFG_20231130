@@ -81,7 +81,6 @@ cw4~cw0에 대한 선언 여부)
 
 [address counter]
 - 16bit 카운터(넉넉하게 비트 설정을 했다?)
-- 카운터에 리셋 신호는 필요없을까?_?
 
 
 * pc에서 주는 wen, ren을 모두 active high로 설정
