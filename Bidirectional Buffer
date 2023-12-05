@@ -42,6 +42,8 @@ begin
 		else
 			data_int_in <= m_pc_data;
 		end if;
+	else ----- state diagram에서 DA -> PC 동작 확인
+		data_int_in <= x"ZZ";
 	end if;
 end process;
 
