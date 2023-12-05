@@ -76,7 +76,7 @@ architecture Behavioral of Main_controller is
 
 ---------------
 -- CW register
-component register__8bit is Port(
+component register_8bit is Port(
 	reg_data_in : in std_logic_vector(7 downto 0);
 	reg_data_out: out std_logic_vector(7 downto 0);
 	reg_clk	: in std_logic;
@@ -92,8 +92,8 @@ end component;
 begin
 
 -- port map (CW Register) ========================================== 확인중
-CW_register : Register__8bit port map(
-	reg_data_in		=> s_reg_data_in, -- signal
+CW_register : Register_8bit port map(
+	reg_data_in		=> s_CW_reg_data_in, -- signal
 	reg_data_out	=> s_CW_reg_data_out,
 	reg_clk			=> m_sys_clk,
 	reset_b			=> m_sys_reset_b
@@ -109,7 +109,7 @@ CW_register : Register__8bit port map(
 
 		elsif(rising_edge(m_sys_clk)) then
 		if(CW_addr = '1') then
-			s_reg_data_in <= data_int_in; -- 유지되는지 여부?? 
+			s_CW_reg_data_in <= data_int_in; -- 유지되는지 여부?? 
 
 		else
 		case STATE is
@@ -193,7 +193,7 @@ CW_register : Register__8bit port map(
 	------- db_en = /sum, db_dir = bRD
 	-- Signal Generation (Memory block) // --active high // <=
 	mem_cs <= (PC_mode or DA_mode);
-	mem_wen <= PC_mode and mem_addr and wen;
+	mem_wen <= (PC_mode and mem_addr) and wen;
 	mem_ren <= (PC_mode and mem_addr and ren) or (DA_mode and DA_start_addr);
 	
 	addr_cnt_en <= not standby_mode;
