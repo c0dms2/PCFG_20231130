@@ -34,40 +34,23 @@ entity address_decoder is
 end address_decoder;
 
 architecture Behavioral of address_decoder is
-	signal s_PCS_b : std_logic;
-	signal s_CW_addr : std_logic;
-	signal s_MEM_addr : std_logic;
-	signal s_XCLR_addr : std_logic;
-	signal s_DA_start_addr : std_logic;
-	signal s_DA_stop_addr : std_logic;
-	signal s_db_en_b : std_logic;
-
 begin
 
 -- m_pc_addr_valid 조건
 process(m_pc_address_valid)
 begin
 	-- 8254 chip select 180~183
-	s_PCS_b <= '0' when (m_pc_address(8 downto 2) = "1100000") else '1';
+	PCS_b <= '0' when (m_pc_address(8 downto 2) = "1100000") else '1';
 	
-	s_CW_addr <= '1' when (m_pc_address = "110000100") else '0'; -- 184
-	s_MEM_addr<= '1' when (m_pc_address = "110000101") else '0'; -- 185
-	s_XCLR_addr<= '1' when (m_pc_address = "110000110") else '0'; -- 186
+	CW_addr <= '1' when (m_pc_address = "110000100") else '0'; -- 184
+	MEM_addr<= '1' when (m_pc_address = "110000101") else '0'; -- 185
+	XCLR_addr<= '1' when (m_pc_address = "110000110") else '0'; -- 186
 	
-	s_DA_start_addr<= '1' when (m_pc_address = "110001000") else '0'; -- 188
-	s_DA_stop_addr <= '1' when (m_pc_address = "110001001") else '0'; -- 189
+	DA_start_addr<= '1' when (m_pc_address = "110001000") else '0'; -- 188
+	DA_stop_addr <= '1' when (m_pc_address = "110001001") else '0'; -- 189
 	
 	-- pc mode (180 ~ 187)
-	s_db_en_b <= '0' when (m_pc_address(8 downto 3) = "110000") else '1';
+	db_en_b <= '0' when (m_pc_address(8 downto 3) = "110000") else '1';
 
 end process;
-
-	PCS_b <= s_PCS_b;
-	CW_addr <= s_CW_addr;
-	MEM_addr <= s_MEM_addr;
-	XCLR_addr <= s_XCLR_addr;
-	DA_start_addr <= s_DA_start_addr;
-	DA_stop_addr <= s_DA_stop_addr;
-	db_en_b <= s_db_en_b;
-
 end Behavioral;
