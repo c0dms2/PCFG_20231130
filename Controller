@@ -198,7 +198,7 @@ CW_register : Register_8bit port map(
 	
 	addr_cnt_en <= not standby_mode;
 	addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
-	addr_cnt_clk <= (PC_mode and xclr_addr and (wen or ren)) or (DA_mode and i8254_ick);
+	addr_cnt_clk <= (PC_mode and mem_addr and (wen or ren)) or (DA_mode and i8254_ick);
 	
 	dac_clk <= i8254_ick and DA_mode; --i8254_ick
 		
