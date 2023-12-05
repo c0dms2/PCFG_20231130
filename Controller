@@ -99,21 +99,17 @@ CW_register : Register__8bit port map(
 	reset_b			=> m_sys_reset_b
 	);
 
-	process(m_sys_clk)
-	begin
-		-- CW_addr = 1 (184H) => m_pc_data 8bit -> register --=== enable??
-		if(CW_addr = '1') then
-			s_reg_data_in <= data_int_in; -- 유지되는지 여부?? 
-		end if;
-	end process;
 
 	process(m_sys_clk)
 	begin
 	-- state machine --
-	if(rising_edge(m_sys_clk)) then
 		-- synchronous reset
 		if(m_sys_reset_b = '0') then
-			s_addr_cnt_en <= '0';		
+			s_addr_cnt_en <= '0';	
+
+		elsif(rising_edge(m_sys_clk)) then
+		if(CW_addr = '1') then
+			s_reg_data_in <= data_int_in; -- 유지되는지 여부?? 
 
 		else
 		case STATE is
@@ -143,10 +139,9 @@ CW_register : Register__8bit port map(
 				STATE <= DA_active;
 			elsif(DA_start_addr = '0' and s_CW_reg_data_out = x"40") then
 				STATE <= PC;
-			else 
+			else -- CW5 = 0 인 상황?!
 				STATE <= DA_idle;
 			end if;
-			--
 			--
 			
 			when DA_active =>
@@ -199,7 +194,7 @@ CW_register : Register__8bit port map(
 	-- Signal Generation (Memory block) // --active high // <=
 	mem_cs <= (PC_mode or DA_mode);
 	mem_wen <= PC_mode and mem_addr and wen;
-	mem_ren <= (PC_mode and mem_addr and ren) or DA_mode;
+	mem_ren <= (PC_mode and mem_addr and ren) or (DA_mode and DA_start_addr);
 	
 	addr_cnt_en <= not standby_mode;
 	addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
