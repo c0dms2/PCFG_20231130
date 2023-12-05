@@ -14,16 +14,16 @@ use IEEE.STD_LOGIC_1164.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity Register__8bit is
+entity Register_8bit is
   Port (
   reg_data_in : in std_logic_vector(7 downto 0);
   reg_data_out: out std_logic_vector(7 downto 0);
   reg_clk	: in std_logic;
-  reset_b	: in std_logic;
+  reset_b	: in std_logic
   );
-end Register__8bit;
+end Register_8bit;
 
-architecture Behavioral of Register__8bit is
+architecture Behavioral of Register_8bit is
 
 begin
 process(reg_clk)
