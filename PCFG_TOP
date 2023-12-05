@@ -140,7 +140,7 @@ Port (
   m_pc_data: inout std_logic_vector(7 downto 0);
   
   data_int_in: out std_logic_vector(7 downto 0);
-  data_int_out: in std_logic_vector(7 downto 0);
+  data_int_out: in std_logic_vector(7 downto 0)
 );
 end component;
 
@@ -176,12 +176,12 @@ PORT (
 END component;
 
 --7) DAC out register
-component Register__8bit is
+component Register_8bit is
 Port (
   reg_data_in : in std_logic_vector(7 downto 0);
   reg_data_out: out std_logic_vector(7 downto 0);
   reg_clk	: in std_logic;
-  reset_b	: in std_logic;
+  reset_b	: in std_logic
 );
 end component;
 ---------------------------------
@@ -216,7 +216,8 @@ signal	s_sys_clk_tmp		:	std_logic;
 	signal s_8254_rp : std_logic;
 	
 -- Block ram
-	signal s_data_int_out : std_logic_vector(7 downto 0);
+	signal s_data_int_out  : std_logic_vector(7 downto 0);
+	signal s_mem_wr_vector : std_logic_vector(0 downto 0);
 
 -- Bidiectional data buffer
 	signal s_data_int_in : std_logic_vector(7 downto 0);
@@ -237,7 +238,7 @@ begin
 clk_ibuf : IBUF
 Port map (
    O => s_sys_clk_tmp, 		-- 1-bit output: Buffer output
-   I => m_sys_clk  			-- 1-bit input: Buffer input
+   I => s_sys_clk  			-- 1-bit input: Buffer input
 );
 
 clk_bufg : BUFG
@@ -318,8 +319,7 @@ Port map
 );
 
 -- Block ram
-s_mem_wr_vector				<=	"1" when s_mem_wr = '1' 	else "0";
-
+s_mem_wr_vector				<=	"1" when s_mem_wen = '1' 	else "0";
 SRAM : blk_mem_gen_0
 Port map
 (
@@ -334,13 +334,13 @@ Port map
 	ena			=>s_mem_cs,
 	enb			=>s_mem_ren,
 
-	wea			=>s_mem_wen,
+	wea			=>s_mem_wr_vector,
 
 	doutb			=>s_data_int_out
 );
 
 -- Memory address counter
-ADDR_COUNTER : Counter_16bit
+ADDR_COUNTER : Address_counter
 Port map
 (
 	m_clock				=> s_cnt_clk,
@@ -364,7 +364,7 @@ Port map
 );
 
 -- DAC out register
-OUT_REG : Register__8bit
+OUT_REG : Register_8bit
 Port map 
 (
 	reg_data_in			=> s_data_int_out,
@@ -377,11 +377,11 @@ Port map
 m_debug_header(0)			<= s_8254_rp;
 m_debug_header(1)			<= s_8254_clk;
 
-m_debug_led(4)				<= s_reset_8254;
-m_debug_led(3)				<= s_pcs_addr;
-m_debug_led(2)				<= s_PC_addr;
-m_debug_led(1)				<= '0';
-m_debug_led(0)				<= '1';
+--m_debug_led(4)				<= s_reset_8254;
+--m_debug_led(3)				<= s_pcs_addr;
+--m_debug_led(2)				<= s_PC_addr;
+--m_debug_led(1)				<= '0';
+--m_debug_led(0)				<= '1';
 
 ---------------------------------
 
