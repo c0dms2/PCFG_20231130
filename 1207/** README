@@ -1,0 +1,46 @@
+#/12.07 수정사항/
+
+1. Address decoder
+- when-else 문으로 작성했던 코드 사용 -> Address decoder 타입을 VHDL 2008 버전으로 수정 후 시뮬레이션
+
+→ decoder로 address 전달되는 것 확인됨
+→ output 신호 출력 확인됨
+
+
+
+2. Bidirectional Buffer
+- oe_b, dir 을 모두 sensitivity list로 설정하고 if문 조건, else문 동작 수정
+
+→ m_pc_data 전달 확인됨 (data_int_in, data_int_out)
+(클럭 rising edge에 맞춰서 wen이 뜨는 것은 아니다. 충분한 시간을 두고 address, data 전
+
+ 
+
+3. PCFG TOP
+(1) clk이 X로 뜨는 문제 해결
+ - [242] I => m_sys_clk 로 수정
+
+(2) 8254 ick, rp 관련 문제
+ - m_wr_b => '0'으로 항상 동작되도록 수정
+
+ 
+
+4. Main controller 
+ - addr_cnt_clk <= (PC_mode and mem_addr and (wen or ren)) or (DA_mode and i8254_ick); 로 수정
+
+
+
+-------------------------
+
+
+ ------------------------
+
+
+ [모듈 디버깅 진행사항]
+ 1. address decoder ✅
+ 2. bidirectional buffer ✅
+ 3. 8254 ✅
+ 4. address counter
+ 5. block memory
+ 6. dac out register
+ + controller
