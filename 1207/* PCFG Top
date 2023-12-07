@@ -239,7 +239,7 @@ begin
 clk_ibuf : IBUF
 Port map (
    O => s_sys_clk_tmp, 		-- 1-bit output: Buffer output
-   I => s_sys_clk  			-- 1-bit input: Buffer input
+   I => m_sys_clk  			-- 1-bit input: Buffer input
 );
 
 clk_bufg : BUFG
@@ -313,7 +313,7 @@ Port map
 		m_gate2   			=>	'1',
 		m_addr    			=>	m_pc_address(1 downto 0),
 		m_cs_b    			=>	s_PCS_b,
-		m_wr_b    			=>	not(s_db_en_b), --da mode
+		m_wr_b    			=>	'0', --da mode
 		m_out0    			=>	s_8254_clk,
 		m_out1    			=>	s_8254_rp,
         m_out2    			=>	open
@@ -358,7 +358,7 @@ Port map
 	dir				=> not m_pc_rd_en,
 	oe_b				=> s_db_en_b,
 	
-	m_pc_data			=> s_pc_data,
+	m_pc_data			=> m_pc_data,
 	
 	data_int_in			=> s_data_int_in,
 	data_int_out			=> s_data_int_out
