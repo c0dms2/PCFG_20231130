@@ -114,6 +114,7 @@ CW_register : Register_8bit port map(
 		else
 		case STATE is
 			when idle =>
+			addr_cnt_clr<= '0';
 			if(s_CW_reg_data_out = x"40") then
 				STATE <= PC;
 			elsif(s_CW_reg_data_out = x"80") then
@@ -124,6 +125,7 @@ CW_register : Register_8bit port map(
 			--
 			
 			when PC =>
+			addr_cnt_clr<= xclr_addr and wen;
 			if(s_CW_reg_data_out = x"80") then
 				STATE <= SB;
 			elsif(s_CW_reg_data_out = x"20") then
@@ -135,6 +137,7 @@ CW_register : Register_8bit port map(
 			--
 			
 			when DA_idle =>
+			addr_cnt_clr<='1';
 			if(DA_start_addr = '1') then -- DA_start 우선
 				STATE <= DA_active;
 			elsif(DA_start_addr = '0' and s_CW_reg_data_out = x"40") then
@@ -145,6 +148,7 @@ CW_register : Register_8bit port map(
 			--
 			
 			when DA_active =>
+			addr_cnt_clr<= not i8254_rp;
 			if(DA_stop_addr = '1') then
 				STATE <= DA_idle;
 			else
@@ -152,6 +156,7 @@ CW_register : Register_8bit port map(
 			end if;
 			
 			when SB =>
+			addr_cnt_clr<= '0';
 			if(s_CW_reg_data_out = x"40") then
 				STATE <= PC;
 			else
@@ -171,22 +176,27 @@ CW_register : Register_8bit port map(
 				PC_mode 	<= '0';
 				DA_mode		<= '0';
 				standby_mode<= '0';
+				
 			when PC =>
 				PC_mode 	<= '1';
 				DA_mode		<= '0';
 				standby_mode<= '0';
+				
 			when DA_idle =>
 				PC_mode 	<= '0';
 				DA_mode		<= '1';
 				standby_mode<= '0';
+				
 			when DA_active =>
 				PC_mode 	<= '0';
 				DA_mode		<= '1';
 				standby_mode<= '0';
+				
 			when SB =>
 				PC_mode 	<= '0';
 				DA_mode		<= '0';
 				standby_mode<= '1';
+				
 			end case;
 		end process;
 		
@@ -194,11 +204,11 @@ CW_register : Register_8bit port map(
 	-- Signal Generation (Memory block) // --active high // <=
 	mem_cs <= (PC_mode or DA_mode);
 	mem_wen <= PC_mode and mem_addr and wen;
-	mem_ren <= (PC_mode and mem_addr and ren) or (DA_mode and DA_start_addr);
+	mem_ren <= (PC_mode and mem_addr and ren) or (DA_mode);
 	
 	addr_cnt_en <= not standby_mode;
-	addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
-	addr_cnt_clk <= (PC_mode and mem_addr and (wen or ren)) or (DA_mode and i8254_ick);
+	--addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
+	addr_cnt_clk <= (PC_mode and (xclr_addr or mem_addr) and (wen or ren)) or (DA_mode and i8254_ick);
 	
 	dac_clk <= i8254_ick and DA_mode; --i8254_ick
 		
