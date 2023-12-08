@@ -1,7 +1,6 @@
 ----------------------------------------------------------------------------------
-
--- Module Name: address_decoder - Behavioral
-
+-- main controller
+-- 
 ----------------------------------------------------------------------------------
 
 
@@ -17,42 +16,200 @@ use IEEE.STD_LOGIC_1164.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity address_decoder is
-  Port ( 
-  m_pc_address	: in std_logic_vector(8 downto 0); -- 9bit address bus
-  m_pc_address_valid :in std_logic;
+entity Main_controller is
+  Port (
+  -- Bidirectional buffer
+  data_int_in: in std_logic_vector(7 downto 0); 
   
-  CW_addr :out std_logic;
-  MEM_addr :out std_logic;
-  XCLR_addr :out std_logic;
-  DA_start_addr :out std_logic;
-  DA_stop_addr	:out std_logic;
+  -- system input clk/reset
+  m_sys_clk: in std_logic; -- controller / block memory clock
+  m_sys_reset_b: in std_logic;
   
-  db_en_b :out std_logic; -- pc mode (Directional Buffer enable control)
-  PCS_b	:out std_logic
+  -- Address decoder
+  CW_addr: in std_logic;
+  mem_addr: in std_logic;
+  xclr_addr: in std_logic;
+  DA_start_addr: in std_logic;
+  DA_stop_addr: in std_logic;
+  
+  -- r/w enable (pc)
+  ren: in std_logic;
+  wen: in std_logic;
+  
+  -- 8254 in/out
+  i8254_ick: in  std_logic;
+  i8254_rp: in std_logic;
+  
+  dac_clk: out std_logic; --- address counter clock / DAC out register input
+  
+  -- address counter
+  addr_cnt_clk: out std_logic;
+  addr_cnt_clr: out std_logic;
+  addr_cnt_en: out std_logic;
+  
+  -- block memory 
+  mem_cs: out std_logic;
+  mem_wen: out std_logic;
+  mem_ren: out std_logic
+  
   );
-end address_decoder;
+end Main_controller;
 
-architecture Behavioral of address_decoder is
+architecture Behavioral of Main_controller is
+	--- signal (CW Register)
+		signal s_CW_reg_data_in : std_logic_vector(7 downto 0);
+		signal s_CW_reg_data_out : std_logic_vector(7 downto 0);
+		
+		-- signal DA start/stop 정의한다면 s_da_start <= DA_start_addr, s_da_stop <= DA_stop_addr
+		-- signal s_da_start : std_logic;
+		-- signal s_da_stop : std_logic;
+		
+		-- mode signal (필요할까??)
+		signal pc_mode : std_logic;
+		signal da_mode : std_logic;
+		signal standby_mode : std_logic;
+		-----------------------------
+		
+	--- signal (controller)
+		signal s_addr_cnt_en : std_logic;
+		signal s_mem : std_logic;
+
+---------------
+-- CW register
+component register_8bit is Port(
+	reg_data_in : in std_logic_vector(7 downto 0);
+	reg_data_out: out std_logic_vector(7 downto 0);
+	reg_clk	: in std_logic;
+	reset_b	: in std_logic
+	);
+end component;
+---------------
+
+	-- state define
+	type control_state is (idle, SB, PC, DA_idle, DA_active);
+	signal STATE: control_state := idle;
 
 begin
 
--- m_pc_addr_valid 조건
-process(m_pc_address_valid)
-begin
-	-- 8254 chip select 180~183
-	PCS_b <= '0' when (m_pc_address(8 downto 2) = "1100000") else '1';
-	
-	CW_addr <= '1' when (m_pc_address = "110000100") else '0'; -- 184
-	MEM_addr<= '1' when (m_pc_address = "110000101") else '0'; -- 185
-	XCLR_addr<= '1' when (m_pc_address = "110000110") else '0'; -- 186
-	
-	DA_start_addr<= '1' when (m_pc_address = "110001000") else '0'; -- 188
-	DA_stop_addr <= '1' when (m_pc_address = "110001001") else '0'; -- 189
-	
-	-- pc mode (180 ~ 187)
-	db_en_b <= '0' when (m_pc_address(8 downto 3) = "110000") else '1';
+-- port map (CW Register) ========================================== 확인중
+CW_register : Register_8bit port map(
+	reg_data_in		=> s_CW_reg_data_in, -- signal
+	reg_data_out	=> s_CW_reg_data_out,
+	reg_clk			=> m_sys_clk,
+	reset_b			=> m_sys_reset_b
+	);
 
-end process;
 
+	process(m_sys_clk)
+	begin
+	-- state machine --
+		-- synchronous reset
+		if(m_sys_reset_b = '0') then
+			s_addr_cnt_en <= '0';	
+
+		elsif(rising_edge(m_sys_clk)) then
+		if(CW_addr = '1') then
+			s_CW_reg_data_in <= data_int_in; -- 유지되는지 여부?? 
+
+		else
+		case STATE is
+			when idle =>
+			addr_cnt_clr<= '0';
+			if(s_CW_reg_data_out = x"40") then
+				STATE <= PC;
+			elsif(s_CW_reg_data_out = x"80") then
+				STATE <= SB;
+			else
+				STATE <= idle;
+			end if;
+			--
+			
+			when PC =>
+			addr_cnt_clr<= xclr_addr and wen;
+			if(s_CW_reg_data_out = x"80") then
+				STATE <= SB;
+			elsif(s_CW_reg_data_out = x"20") then
+				STATE <= DA_idle;
+			--elsif(s_CW_reg_data_out = x"40") then
+			else
+				STATE <= PC;
+			end if;
+			--
+			
+			when DA_idle =>
+			addr_cnt_clr<='1';
+			if(DA_start_addr = '1') then -- DA_start 우선
+				STATE <= DA_active;
+			elsif(DA_start_addr = '0' and s_CW_reg_data_out = x"40") then
+				STATE <= PC;
+			else -- CW5 = 0 인 상황?!
+				STATE <= DA_idle;
+			end if;
+			--
+			
+			when DA_active =>
+			addr_cnt_clr<= not i8254_rp;
+			if(DA_stop_addr = '1') then
+				STATE <= DA_idle;
+			else
+				STATE <= DA_active;
+			end if;
+			
+			when SB =>
+			addr_cnt_clr<= '0';
+			if(s_CW_reg_data_out = x"40") then
+				STATE <= PC;
+			else
+				STATE <= SB;
+			end if;
+			
+		end case;
+		end if;
+	end if;
+	end process;
+	
+	-- mode signal setting
+	process(STATE)
+	begin
+		case STATE is
+			when idle =>
+				PC_mode 	<= '0';
+				DA_mode		<= '0';
+				standby_mode<= '0';
+				
+			when PC =>
+				PC_mode 	<= '1';
+				DA_mode		<= '0';
+				standby_mode<= '0';
+				
+			when DA_idle =>
+				PC_mode 	<= '0';
+				DA_mode		<= '1';
+				standby_mode<= '0';
+				
+			when DA_active =>
+				PC_mode 	<= '0';
+				DA_mode		<= '1';
+				standby_mode<= '0';
+				
+			when SB =>
+				PC_mode 	<= '0';
+				DA_mode		<= '0';
+				standby_mode<= '1';
+				
+			end case;
+		end process;
+		
+	------- db_en = /sum, db_dir = bRD
+	-- Signal Generation (Memory block) // --active high // <=
+	mem_cs <= (PC_mode or DA_mode);
+	mem_wen <= PC_mode and mem_addr and wen;
+	mem_ren <= (PC_mode and mem_addr and ren) or (DA_mode);
+	
+	addr_cnt_en <= not standby_mode;
+	--addr_cnt_clr <= (PC_mode and xclr_addr and wen) or (DA_mode and i8254_rp);
+	addr_cnt_clk <= (PC_mode and (xclr_addr or mem_addr) and (wen or ren)) or (DA_mode and i8254_ick);
+	
+	dac_clk <= i8254_ick and DA_mode; --i8254_ick
+		
 end Behavioral;
