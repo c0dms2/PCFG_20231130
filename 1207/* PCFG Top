@@ -239,7 +239,7 @@ begin
 clk_ibuf : IBUF
 Port map (
    O => s_sys_clk_tmp, 		-- 1-bit output: Buffer output
-   I => s_sys_clk  			-- 1-bit input: Buffer input
+   I => m_sys_clk  			-- 1-bit input: Buffer input
 );
 
 clk_bufg : BUFG
@@ -313,7 +313,7 @@ Port map
 		m_gate2   			=>	'1',
 		m_addr    			=>	m_pc_address(1 downto 0),
 		m_cs_b    			=>	s_PCS_b,
-		m_wr_b    			=>	not(s_db_en_b), --da mode
+		m_wr_b    			=>	'0', --da mode
 		m_out0    			=>	s_8254_clk,
 		m_out1    			=>	s_8254_rp,
         m_out2    			=>	open
@@ -324,8 +324,8 @@ s_mem_wr_vector				<=	"1" when s_mem_wen = '1' 	else "0";
 SRAM : blk_mem_gen_0
 Port map
 (
-	clka			=> m_sys_clk, --signal로 할당해야 하는지 확인
-	clkb			=> m_sys_clk,
+	clka			=> s_sys_clk, --signal로 할당해야 하는지 확인
+	clkb			=> s_sys_clk,
 
 	dina			=>s_data_int_in,
 
@@ -358,7 +358,7 @@ Port map
 	dir				=> not m_pc_rd_en,
 	oe_b				=> s_db_en_b,
 	
-	m_pc_data			=> s_pc_data,
+	m_pc_data			=> m_pc_data,
 	
 	data_int_in			=> s_data_int_in,
 	data_int_out			=> s_data_int_out
@@ -374,16 +374,21 @@ Port map
 	reset_b				=> '1'
 );
 
+-- Top module out
+m_dac_clk <= s_dac_clk;
 -- Debugging outputs
 m_debug_header(0)			<= s_8254_rp;
 m_debug_header(1)			<= s_8254_clk;
 
---m_debug_led(4)				<= s_reset_8254;
---m_debug_led(3)				<= s_pcs_addr;
---m_debug_led(2)				<= s_PC_addr;
---m_debug_led(1)				<= '0';
---m_debug_led(0)				<= '1';
-
+m_debug_led(7)				<= s_mem_ren;
+m_debug_led(6)				<= s_mem_wen;
+m_debug_led(5)				<= s_cnt_clr;
+m_debug_led(4)				<= s_PCS_b;
+m_debug_led(3)				<= s_CW_addr;
+m_debug_led(2)				<= s_db_en_b;
+m_debug_led(1)				<= '1';
+m_debug_led(0)				<= '0';
 ---------------------------------
 
 end Behavioral;
+--C:/Users/user/PCFG -/PCFG_1207/TB_PCFG_TOP_behav.wcfg
