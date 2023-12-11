@@ -355,13 +355,13 @@ Port map
 BIDIR_BUF : Bidirectional_Buffer
 Port map
 (
-	dir				=> not m_pc_rd_en,
+	dir					=> not m_pc_rd_en,
 	oe_b				=> s_db_en_b,
 	
 	m_pc_data			=> m_pc_data,
 	
 	data_int_in			=> s_data_int_in,
-	data_int_out			=> s_data_int_out
+	data_int_out		=> s_data_int_out
 );
 
 -- DAC out register
@@ -369,7 +369,7 @@ OUT_REG : Register_8bit
 Port map 
 (
 	reg_data_in			=> s_data_int_out,
-	reg_data_out			=> m_dac_data,
+	reg_data_out		=> m_dac_data,
 	reg_clk				=> s_dac_clk,
 	reset_b				=> '1'
 );
