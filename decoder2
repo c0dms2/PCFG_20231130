@@ -1,0 +1,12 @@
+	/* PCS_b <= not(m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and (not m_pc_address(3)) and (not m_pc_address(2)));
+	
+	CW_addr <= m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and (not m_pc_address(3)) and ( m_pc_address(2)) and ( not m_pc_address(1)) and (not m_pc_address(0));--'1' when (m_pc_address = "110000100") else '0'; -- 184
+	MEM_addr<= m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and (not m_pc_address(3)) and ( m_pc_address(2)) and ( not m_pc_address(1)) and ( m_pc_address(0));--'1' when (m_pc_address = "110000101") else '0'; -- 185
+	XCLR_addr<=m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and (not m_pc_address(3)) and ( m_pc_address(2)) and (  m_pc_address(1)) and (not m_pc_address(0)); --'1' when (m_pc_address = "110000110") else '0'; -- 186
+	
+	DA_start_addr<= m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and (m_pc_address(3)) and (not m_pc_address(2)) and ( not m_pc_address(1)) and (not m_pc_address(0));--'1' when (m_pc_address = "110001000") else '0'; -- 188
+	
+	DA_stop_addr <= m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and ( m_pc_address(3)) and (not m_pc_address(2)) and ( not m_pc_address(1)) and ( m_pc_address(0));--'1' when (m_pc_address = "110001001") else '0'; -- 189
+	
+	-- pc mode (180 ~ 187)
+	db_en_b <= not( m_pc_address(8) and m_pc_address(7) and (not m_pc_address(6)) and (not m_pc_address(5)) and (not m_pc_address(4)) and ( m_pc_address(3))); --'0' when (m_pc_address(8 downto 3) = "110000") else '1'; */
