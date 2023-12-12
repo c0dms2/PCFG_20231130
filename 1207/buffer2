@@ -1,0 +1,16 @@
+process(dir, oe_b)
+begin
+   if(dir = '0' and oe_b = '0') then
+      -- read --
+      m_pc_data <= data_int_out; -- when oe_b = '0' else x"ZZ";      
+   elsif(dir = '1' and oe_b = '0') then ----- state diagram에서 DA -> PC 동작 확인      
+      data_int_in <= m_pc_data;
+	else
+	  m_pc_data  <= (others => 'Z'); --DA mode
+	     
+   end if;
+   -- write --
+   end process;
+
+
+end Behavioral;
