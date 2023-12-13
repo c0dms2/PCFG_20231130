@@ -1,0 +1,407 @@
+----------------------------------------------------------------------------------
+-- Company: FIR Lab at DKU
+-- Engineer: Heechul Yoon
+-- 
+-- Create Date: 07/08/2023 10:38:20 PM
+-- Design Name: 
+-- Module Name: PCFG_TOP - Behavioral
+-- Project Name: PC-based function generator design
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+library UNISIM;
+use UNISIM.VComponents.all;
+
+entity PCFG_TOP is
+Port ( 
+		-- Main clock and reset
+		m_sys_clk			:	in		std_logic;						-- FPGA master clock
+		m_sys_reset_b		:	in		std_logic;						-- FPGA master reset (active low)
+		
+		-- PC interface
+		m_pc_address		:	in		std_logic_vector(8 downto 0);	-- 9-bit address bus from PC
+		m_pc_data			:	inout	std_logic_vector(7 downto 0);	-- Bidirectional 8-bit data bus
+		m_pc_wr_en			:	in		std_logic;						-- PC to FPGA write enable
+		m_pc_rd_en			:	in		std_logic;						-- PC from FPGA read enable
+		m_pc_oe_b			:	in		std_logic;						-- Output enable for PC read
+		m_pc_addr_valid		:	in		std_logic;						-- PC address valid signal
+		
+		-- DAC interface
+		m_dac_data			:	out		std_logic_vector(7 downto 0);
+		m_dac_clk			:	out		std_logic;
+		
+		-- Debugging ports
+		m_debug_led			:	out		std_logic_vector(7 downto 0);
+		m_debug_header		:	out		std_logic_vector(1 downto 0)
+);
+end PCFG_TOP;
+
+architecture Behavioral of PCFG_TOP is
+
+---- Components (submodules) ----
+--1) Controller
+component Main_Controller is
+Port (
+
+  -- Bidirectional buffer
+  data_int_in: in std_logic_vector(7 downto 0); 
+  
+  -- system input clk/reset
+  m_sys_clk: in std_logic; -- controller / block memory clock
+  m_sys_reset_b: in std_logic;
+  
+  -- Address decoder
+  CW_addr: in std_logic;
+  mem_addr: in std_logic;
+  xclr_addr: in std_logic;
+  DA_start_addr: in std_logic;
+  DA_stop_addr: in std_logic;
+  
+  -- r/w enable (pc)
+  ren: in std_logic;
+  wen: in std_logic;
+  
+  -- 8254 in/out
+  i8254_ick: in  std_logic;
+  i8254_rp: in std_logic;
+  
+  dac_clk: out std_logic; --- address counter clock / DAC out register input
+  
+  -- address counter
+  addr_cnt_clk: out std_logic;
+  addr_cnt_clr: out std_logic;
+  addr_cnt_en: out std_logic;
+  
+  -- block memory 
+  mem_cs: out std_logic;
+  mem_wen: out std_logic;
+  mem_ren: out std_logic;
+  
+  --Debugging
+    debug: out std_logic_vector(7 downto 0)
+  
+);
+end component;
+
+--2) Address Decoder
+component address_decoder is
+Port (
+	  m_pc_address	: in std_logic_vector(8 downto 0); -- 9bit address bus
+	  m_pc_address_valid :in std_logic;
+	  
+	  CW_addr :out std_logic;
+	  MEM_addr :out std_logic;
+	  XCLR_addr :out std_logic;
+	  DA_start_addr :out std_logic;
+	  DA_stop_addr	:out std_logic;
+	  
+	  db_en_b :out std_logic; -- pc mode (Directional Buffer enable control)
+	  PCS_b	:out std_logic
+);
+end component;
+
+--3) 8254 block
+component TOP_8254 is
+Port( 
+		m_clk0    			:	in		STD_LOGIC;
+		m_clk1    			:	in		STD_LOGIC;
+        m_clk2    			:	in		STD_LOGIC;
+		m_clk_ctr 			:	in		STD_LOGIC;
+		m_reset   			:	in		STD_LOGIC;
+		m_data    			:	in		STD_LOGIC_VECTOR (7 downto 0);
+		m_gate0   			:	in		STD_LOGIC;
+		m_gate1   			:	in		STD_LOGIC;
+		m_gate2   			:	in		STD_LOGIC;
+		m_addr    			:	in		STD_LOGIC_VECTOR (1 downto 0);
+		m_cs_b    			:	in		STD_LOGIC;
+		m_wr_b    			:	in		STD_LOGIC;
+						
+		m_out0    			:	out 	STD_LOGIC;
+		m_out1    			:	out 	STD_LOGIC;
+        m_out2    			:	out 	STD_LOGIC
+	);
+end component;
+
+--4) Bidiectional data buffer
+component Bidirectional_Buffer is
+Port (
+  dir : in std_logic;
+  oe_b : in std_logic;
+  
+  m_pc_data: inout std_logic_vector(7 downto 0);
+  
+  data_int_in: out std_logic_vector(7 downto 0);
+  data_int_out: in std_logic_vector(7 downto 0)
+);
+end component;
+
+--5) Memory address counter
+component Address_counter is
+Port (
+	m_clock: 		 in std_logic;
+    m_reset: 		 in std_logic;
+	m_counter_en:	 in std_logic;
+
+    m_cnt_out:		 out std_logic_vector(15 downto 0)
+);
+end component;
+
+--6) Block ram
+component blk_mem_gen_0 IS
+PORT (
+	clka:			in std_logic;
+	clkb:			in std_logic;
+
+	dina:			in std_logic_vector(7 downto 0);
+
+	addra:			in std_logic_vector(15 downto 0);
+	addrb:			in std_logic_vector(15 downto 0);
+
+	ena:			in std_logic;
+	enb:			in std_logic;
+
+	wea:			in std_logic_vector(0 downto 0);
+
+	doutb:			out std_logic_vector(7 downto 0)
+);
+END component;
+
+--7) DAC out register
+component Register_8bit is
+Port (
+  reg_data_in : in std_logic_vector(7 downto 0);
+  reg_data_out: out std_logic_vector(7 downto 0);
+  reg_clk	: in std_logic;
+  reset_b	: in std_logic
+);
+end component;
+---------------------------------
+
+---- Internal signals -----------
+-- Main clock
+signal	s_sys_clk			:	std_logic;
+signal	s_sys_clk_tmp		:	std_logic;
+
+-- Address Decoder
+
+	signal s_PCS_b : std_logic;
+	signal s_CW_addr : std_logic;
+	signal s_MEM_addr : std_logic;
+	signal s_XCLR_addr : std_logic;
+	signal s_DA_start_addr : std_logic;
+	signal s_DA_stop_addr : std_logic;
+	signal s_db_en_b : std_logic;
+
+-- Controller
+	signal s_dac_clk: std_logic;
+	
+	signal s_cnt_clk : std_logic;
+	signal s_cnt_clr : std_logic;
+	signal s_cnt_en : std_logic;
+	
+	signal s_mem_cs : std_logic;
+	signal s_mem_wen : std_logic;
+	signal s_mem_ren : std_logic;
+	
+	signal s_debug : std_logic_vector(7 downto 0);
+
+-- 8254 block
+	signal s_8254_clk : std_logic;
+	signal s_8254_rp : std_logic;
+	
+-- Block ram
+	signal s_data_int_out  : std_logic_vector(7 downto 0);
+	signal s_mem_wr_vector : std_logic_vector(0 downto 0);
+
+-- Bidiectional data buffer
+	signal s_data_int_in : std_logic_vector(7 downto 0);
+	signal s_pc_data	 : std_logic_vector(7 downto 0);
+-- Control word register
+
+---- Address counter
+	signal s_cnt_out : std_logic_vector(15 downto 0);
+
+-- Debugging
+	signal s_debug_led : std_logic_vector(7 downto 0);
+	signal s_debug_header : std_logic_vector(1 downto 0);
+---------------------------------
+
+begin
+---- Main Clock -----------------
+--Xilinx primitives for main clocking
+clk_ibuf : IBUF
+Port map (
+   O => s_sys_clk_tmp, 		-- 1-bit output: Buffer output
+   I => m_sys_clk  			-- 1-bit input: Buffer input
+);
+
+clk_bufg : BUFG
+Port map (
+   O => s_sys_clk, 			-- 1-bit output: Buffer output
+   I => s_sys_clk_tmp  		-- 1-bit input: Buffer input
+);
+
+
+---------- Port mapping ---------------
+-- Address Decoder
+ADDR_DEC : address_decoder
+Port map
+(
+	m_pc_address			=> m_pc_address,
+	m_pc_address_valid		=> m_pc_addr_valid,
+	
+	CW_addr					=> s_CW_addr,
+	MEM_addr				=> s_MEM_addr,
+	XCLR_addr				=> s_XCLR_addr,
+	DA_start_addr			=> s_DA_start_addr,
+	DA_stop_addr			=> s_DA_stop_addr,
+	
+	db_en_b					=> s_db_en_b,
+	PCS_b					=> s_PCS_b
+);
+
+-- Controller
+MAIN_CNTRL : Main_Controller 
+Port map
+(	
+	data_int_in				=>s_data_int_in,
+		
+	m_sys_clk				=>s_sys_clk,
+	m_sys_reset_b			=>m_sys_reset_b,
+	
+	CW_addr					=>s_CW_addr,
+	mem_addr				=>s_MEM_addr,
+	xclr_addr				=>s_XCLR_addr,
+	DA_start_addr			=>s_DA_start_addr,
+	DA_stop_addr			=>s_DA_stop_addr,
+	
+	ren						=> m_pc_rd_en,
+	wen						=> m_pc_wr_en,
+	
+	i8254_ick				=> s_8254_clk,
+	i8254_rp				=> s_8254_rp,
+	dac_clk					=> s_dac_clk,
+	
+	addr_cnt_clk			=> s_cnt_clk,
+	addr_cnt_clr			=> s_cnt_clr,
+	addr_cnt_en				=> s_cnt_en,
+	
+	mem_cs					=> s_mem_cs,
+	mem_wen					=> s_mem_wen,
+	mem_ren					=> s_mem_ren,
+	
+	debug					=> s_debug
+);
+
+-- 8254 block
+ICLK_RP_8254 : TOP_8254
+Port map
+( 
+		m_clk0    			=>	s_sys_clk,
+		m_clk1    			=>	s_8254_clk,
+        m_clk2    			=>	s_sys_clk,
+		m_clk_ctr 			=>	s_sys_clk,
+		m_reset   			=>	not m_sys_reset_b,
+		m_data    			=>	s_data_int_in,
+		m_gate0   			=>	'1',
+		m_gate1   			=>	'1',
+		m_gate2   			=>	'1',
+		m_addr    			=>	m_pc_address(1 downto 0),
+		m_cs_b    			=>	s_PCS_b,
+		m_wr_b    			=>	s_PCS_b, --da mode
+		m_out0    			=>	s_8254_clk,
+		m_out1    			=>	s_8254_rp,
+        m_out2    			=>	open
+);
+
+-- Block ram
+s_mem_wr_vector				<=	"1" when s_mem_wen = '1' 	else "0";
+SRAM : blk_mem_gen_0
+Port map
+(
+	clka			=> s_sys_clk, --signal濡? ?븷?떦?빐?빞 ?븯?뒗吏? ?솗?씤
+	clkb			=> s_sys_clk,
+
+	dina			=>s_data_int_in,
+
+	addra			=>s_cnt_out,
+	addrb			=>s_cnt_out,
+
+	ena			    =>s_mem_cs,
+	enb			    =>s_mem_ren,
+
+	wea			    =>s_mem_wr_vector,
+
+	doutb			=>s_data_int_out
+);
+
+-- Memory address counter
+ADDR_COUNTER : Address_counter
+Port map
+(
+	m_clock				=> s_cnt_clk,
+	m_reset				=> s_cnt_clr,
+	m_counter_en		=> s_cnt_en,
+
+	m_cnt_out			=> s_cnt_out
+);
+
+-- Bidiectional data buffer
+BIDIR_BUF : Bidirectional_Buffer
+Port map
+(
+	dir					=> not m_pc_rd_en,
+	oe_b				=> s_db_en_b,
+	
+	m_pc_data			=> m_pc_data,
+	
+	data_int_in			=> s_data_int_in,
+	data_int_out		=> s_data_int_out
+);
+
+-- DAC out register
+OUT_REG : Register_8bit
+Port map 
+(
+	reg_data_in			=> s_data_int_out,
+	reg_data_out		=> m_dac_data,
+	reg_clk				=> s_dac_clk,
+	reset_b				=> '1'
+);
+
+-- Top module out
+m_dac_clk <= s_dac_clk;
+
+-- Debugging outputs
+------header ?솗?씤
+m_debug_header(0)			<= s_8254_rp;
+m_debug_header(1)			<= s_8254_clk;
+
+---
+m_debug_led(7)				<= s_mem_wen;
+m_debug_led(6)				<= m_pc_addr_valid;
+
+m_debug_led(5)				<= s_MEM_addr;
+m_debug_led(4)				<= s_CW_addr;
+
+m_debug_led(3)				<= s_PCS_b;
+
+m_debug_led(2)				<= s_debug(2);
+m_debug_led(1)				<= s_debug(1); --controller
+m_debug_led(0)				<= s_debug(0);
+---------------------------------
+
+end Behavioral;
+--C:/Users/user/PCFG -/PCFG_1207/TB_PCFG_TOP_behav.wcfg
