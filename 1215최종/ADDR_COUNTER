@@ -1,0 +1,33 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.numeric_std.all; -- integer
+
+entity Address_counter is
+    Port ( m_clock: in std_logic;
+           m_reset: in std_logic;
+  m_counter_en: in std_logic;
+
+           m_cnt_out: out std_logic_vector(15 downto 0));
+end Address_counter;
+
+architecture Behavioral of Address_counter is
+signal s_count: integer range 0 to 65535 := 0;
+
+begin
+
+process(m_clock)  
+begin
+----- PC Read 문제 원인 - 조건문 순서(reset - rising_edge) -----
+if(m_reset='1') then
+        s_count <= 0;
+elsif(rising_edge(m_clock)) then
+    if (m_counter_en = '1') then
+        s_count <= s_count + 1;
+    end if;
+ end if;
+end process;
+  m_cnt_out <= std_logic_vector(to_unsigned(s_count, m_cnt_out'length));
+
+
+end Behavioral;
